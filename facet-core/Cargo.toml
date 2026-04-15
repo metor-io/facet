@@ -74,6 +74,8 @@ yoke = ["alloc", "dep:yoke", "dep:stable_deref_trait"]
 tendril = ["alloc", "dep:tendril"]
 # Provide Facet trait implementation for smallvec::SmallVec
 smallvec = ["alloc", "dep:smallvec"]
+# Provide Facet trait implementations for gpui types (Hsla, SharedString)
+gpui = ["alloc", "dep:gpui"]
 
 # Provide Facet trait implementations for tuples up to size 12. Without it,
 # Facet is only implemented for tuples up to size 4.
@@ -116,6 +118,7 @@ tendril = { version = "0.5.0", optional = true }
 stable_deref_trait = { version = "1.2.1", optional = true }
 smallvec = { workspace = true, optional = true }
 semver = { version = "1.0.27", optional = true, default-features = false }
+gpui = { version = "*", optional = true }
 
 
 [dev-dependencies]

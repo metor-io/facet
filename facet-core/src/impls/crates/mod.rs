@@ -1,6 +1,7 @@
 mod bytes;
 mod bytestring;
 mod camino;
+mod gpui;
 mod chrono;
 mod compact_str;
 mod iddqd;

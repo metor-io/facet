@@ -99,6 +99,7 @@ iddqd = [
 ] # Provide Facet trait implementations for iddqd collection types (IdHashMap, BiHashMap, TriHashMap, IdOrdMap)
 yoke = ["facet-core/yoke"] # Provide Facet trait implementations for yoke::Yoke
 smallvec = ["facet-core/smallvec"] # Provide Facet trait implementations for smallvec::SmallVec
+gpui = ["facet-core/gpui"] # Provide Facet trait implementations for gpui types (Hsla, SharedString)
 
 # Provide Facet trait implementations for tuples up to size 12. Without it,
 # Facet is only implemented for tuples up to size 4.
