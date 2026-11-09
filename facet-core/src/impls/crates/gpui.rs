@@ -11,34 +11,35 @@ use crate::{
 
 // --- Hsla ---
 
+// gpui's Hsla is palette's `Alpha<Hsl, f32>`: `#[repr(C)]` all the way down,
+// so its four f32s sit at fixed offsets. The hue is stored in degrees.
 const HSLA_FIELDS: &[Field] = &[
-    FieldBuilder::new("h", crate::shape_of::<f32>, {
-        // Hsla is #[repr(C)] with fields h, s, l, a all f32.
-        // Mirror the layout to get offsets without depending on offset_of!(Hsla, h).
-        #[repr(C)]
-        struct Probe(f32, f32, f32, f32);
-        core::mem::offset_of!(Probe, 0)
-    })
+    FieldBuilder::new(
+        "hue",
+        crate::shape_of::<f32>,
+        core::mem::offset_of!(Hsla, color.hue),
+    )
     .build(),
-    FieldBuilder::new("s", crate::shape_of::<f32>, {
-        #[repr(C)]
-        struct Probe(f32, f32, f32, f32);
-        core::mem::offset_of!(Probe, 1)
-    })
+    FieldBuilder::new(
+        "saturation",
+        crate::shape_of::<f32>,
+        core::mem::offset_of!(Hsla, color.saturation),
+    )
     .build(),
-    FieldBuilder::new("l", crate::shape_of::<f32>, {
-        #[repr(C)]
-        struct Probe(f32, f32, f32, f32);
-        core::mem::offset_of!(Probe, 2)
-    })
+    FieldBuilder::new(
+        "lightness",
+        crate::shape_of::<f32>,
+        core::mem::offset_of!(Hsla, color.lightness),
+    )
     .build(),
-    FieldBuilder::new("a", crate::shape_of::<f32>, {
-        #[repr(C)]
-        struct Probe(f32, f32, f32, f32);
-        core::mem::offset_of!(Probe, 3)
-    })
-    .build(),
+    FieldBuilder::new("alpha", crate::shape_of::<f32>, core::mem::offset_of!(Hsla, alpha)).build(),
 ];
+
+/// The hue as a fraction of the circle, the text form's unit (and gpui's
+/// before it took palette's degrees).
+fn hue_fraction(c: &Hsla) -> f32 {
+    c.color.hue.into_positive_degrees() / 360.0
+}
 
 unsafe fn display_hsla(
     source: OxPtrConst,
@@ -46,7 +47,14 @@ unsafe fn display_hsla(
 ) -> Option<core::fmt::Result> {
     unsafe {
         let c = source.get::<Hsla>();
-        Some(write!(f, "{:.2} {:.2} {:.2} {:.2}", c.h, c.s, c.l, c.a))
+        Some(write!(
+            f,
+            "{:.2} {:.2} {:.2} {:.2}",
+            hue_fraction(c),
+            c.color.saturation,
+            c.color.lightness,
+            c.alpha
+        ))
     }
 }
 
@@ -54,37 +62,30 @@ unsafe fn partial_eq_hsla(a: OxPtrConst, b: OxPtrConst) -> Option<bool> {
     unsafe {
         let a = a.get::<Hsla>();
         let b = b.get::<Hsla>();
-        Some(a.h == b.h && a.s == b.s && a.l == b.l && a.a == b.a)
+        Some(
+            a.color.hue == b.color.hue
+                && a.color.saturation == b.color.saturation
+                && a.color.lightness == b.color.lightness
+                && a.alpha == b.alpha,
+        )
     }
 }
 
 unsafe fn parse_hsla(s: &str, target: OxPtrUninit) -> Option<Result<(), ParseError>> {
     let parts: Vec<f32> = s.split_whitespace().filter_map(|p| p.parse().ok()).collect();
-    unsafe {
-        match parts.len() {
-            3 => {
-                target.put(Hsla {
-                    h: parts[0],
-                    s: parts[1],
-                    l: parts[2],
-                    a: 1.0,
-                });
-                Some(Ok(()))
-            }
-            4 => {
-                target.put(Hsla {
-                    h: parts[0],
-                    s: parts[1],
-                    l: parts[2],
-                    a: parts[3],
-                });
-                Some(Ok(()))
-            }
-            _ => Some(Err(ParseError::from_str(
+    let alpha = match parts.len() {
+        3 => 1.0,
+        4 => parts[3],
+        _ => {
+            return Some(Err(ParseError::from_str(
                 "expected 3 or 4 space-separated floats (h s l [a])",
-            ))),
+            )));
         }
+    };
+    unsafe {
+        target.put(gpui::hsla(parts[0], parts[1], parts[2], alpha));
     }
+    Some(Ok(()))
 }
 
 const HSLA_VTABLE: VTableIndirect = VTableIndirect {
@@ -94,9 +95,9 @@ const HSLA_VTABLE: VTableIndirect = VTableIndirect {
     ..VTableIndirect::EMPTY
 };
 
-// Safety: Hsla is #[repr(C)] with 4 pub f32 fields in h,s,l,a order.
-// The field offsets are computed from a matching #[repr(C)] probe struct.
-// Hsla is Copy and has no invariants, so POD is correct.
+// Safety: Hsla is `#[repr(C)]` (palette's Alpha over Hsl over RgbHue) with
+// four f32s; the field offsets come from `offset_of!` on Hsla itself. It is
+// Copy with no invariants, so POD is correct.
 unsafe impl Facet<'_> for Hsla {
     const SHAPE: &'static Shape = &const {
         ShapeBuilder::for_sized::<Hsla>("Hsla")

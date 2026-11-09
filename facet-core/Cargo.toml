@@ -118,7 +118,9 @@ tendril = { version = "0.5.0", optional = true }
 stable_deref_trait = { version = "1.2.1", optional = true }
 smallvec = { workspace = true, optional = true }
 semver = { version = "1.0.27", optional = true, default-features = false }
-gpui = { version = "*", optional = true }
+# gpui-ce, the community fork: its library is still `gpui`, but a
+# `[patch]` can't swap a differently named package in, so name it here.
+gpui = { package = "gpui-ce", git = "https://github.com/gpui-ce/gpui-ce", rev = "9c98a9668b6e1d7755d484e95a52d9a8c6336e93", optional = true }
 
 
 [dev-dependencies]
